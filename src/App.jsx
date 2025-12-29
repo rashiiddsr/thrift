@@ -10,52 +10,163 @@ const initialLogin = {
 
 const initialRegister = {
   fullName: '',
+  username: '',
+  phone: '',
   email: '',
   password: '',
-  phone: '',
+  confirmPassword: '',
   address: '',
 }
 
-const adminAccounts = {
-  'superadmin@sar.ac.id': {
-    name: 'Super Admin',
-    password: 'superadmin',
-    role: 'superadmin',
-  },
-  'admin@sar.ac.id': {
-    name: 'Admin',
-    password: 'admin',
-    role: 'admin',
-  },
+const defaultAdmin = {
+  name: 'Admin SAR',
+  username: 'admin',
+  email: 'admin@sar.ac.id',
+  password: 'admin',
+  role: 'superadmin',
 }
 
-const resolveRole = (email) => {
-  const normalized = email.trim().toLowerCase()
-  if (normalized === 'superadmin@sar.ac.id') return 'superadmin'
-  if (normalized === 'admin@sar.ac.id') return 'admin'
-  return 'customer'
+const allowedEmailDomains = ['@sar.ac.id', '@usti.ac.id']
+
+const isAllowedEmail = (email) =>
+  allowedEmailDomains.some((domain) => email.trim().toLowerCase().endsWith(domain))
+
+const isAdminCredential = (identifier, password) => {
+  const normalized = identifier.trim().toLowerCase()
+  if (!normalized || !password) return false
+  return (
+    (normalized === defaultAdmin.email || normalized === defaultAdmin.username) &&
+    password === defaultAdmin.password
+  )
 }
 
-const isSarEmail = (email) => email.trim().toLowerCase().endsWith('@sar.ac.id')
+const isAdminRoute = () => window.location.pathname.startsWith('/admin')
+const isUserRoute = () => window.location.pathname.startsWith('/user')
 
-function App() {
-  const [isLoginOpen, setIsLoginOpen] = useState(false)
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false)
+function AdminApp() {
+  const [adminIdentifier, setAdminIdentifier] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  const [adminError, setAdminError] = useState('')
+  const [adminAuthenticated, setAdminAuthenticated] = useState(false)
+
+  const handleAdminSubmit = (event) => {
+    event.preventDefault()
+
+    if (!isAdminCredential(adminIdentifier, adminPassword)) {
+      setAdminError('Username/email atau password admin tidak sesuai.')
+      return
+    }
+
+    setAdminAuthenticated(true)
+    setAdminError('')
+  }
+
+  if (!adminAuthenticated) {
+    return (
+      <div className="admin-login admin-login--light">
+        <div className="admin-login__background admin-login__background--light" />
+        <div className="admin-login__card admin-login__card--light">
+          <div className="admin-login__brand">
+            <div className="admin-login__logo admin-login__logo--light">TK</div>
+            <div>
+              <h1>ThriftKos Admin</h1>
+              <p>Panel pengelolaan internal</p>
+            </div>
+          </div>
+          <div className="admin-login__header">
+            <h2>Sign In</h2>
+            <p>Masuk menggunakan akun admin</p>
+          </div>
+          <form className="admin-login__form" onSubmit={handleAdminSubmit}>
+            <label>
+              Email atau Username
+              <input
+                type="text"
+                value={adminIdentifier}
+                onChange={(event) => setAdminIdentifier(event.target.value)}
+                placeholder="admin@sar.ac.id atau username"
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={adminPassword}
+                onChange={(event) => setAdminPassword(event.target.value)}
+                placeholder="Masukkan password"
+                required
+              />
+            </label>
+            {adminError && <p className="form-error">{adminError}</p>}
+            <button className="admin-login__button admin-login__button--light" type="submit">
+              Sign In
+            </button>
+          </form>
+          <p className="admin-login__hint">
+            Default admin: {defaultAdmin.username} / {defaultAdmin.password}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="adminlte adminlte--light">
+      <aside className="adminlte__sidebar adminlte__sidebar--light">
+        <div className="adminlte__brand">
+          <div className="adminlte__logo adminlte__logo--light">TK</div>
+          <div>
+            <h2>ThriftKos</h2>
+            <span>AdminLTE</span>
+          </div>
+        </div>
+        <nav className="adminlte__nav">
+          <button type="button" className="adminlte__nav-item adminlte__nav-item--active">
+            Dashboard
+          </button>
+          <button type="button" className="adminlte__nav-item">
+            Data Admin
+          </button>
+          <button type="button" className="adminlte__nav-item">
+            Master User
+          </button>
+          <button type="button" className="adminlte__nav-item">
+            Pengaturan
+          </button>
+        </nav>
+      </aside>
+      <div className="adminlte__content">
+        <header className="adminlte__topbar">
+          <div>
+            <h1>Dashboard</h1>
+            <p>Selamat datang, {defaultAdmin.name}</p>
+          </div>
+          <div className="adminlte__profile">
+            <span>{defaultAdmin.role}</span>
+            <div className="adminlte__avatar adminlte__avatar--light">A</div>
+          </div>
+        </header>
+        <section className="adminlte__empty">
+          <h3>Konten dashboard akan segera tersedia.</h3>
+          <p>Gunakan area ini untuk ringkasan admin dan modul master data.</p>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function UserAuthPage({
+  initialMode = 'login',
+  registeredUsers,
+  setRegisteredUsers,
+  onLoginSuccess,
+}) {
+  const [mode, setMode] = useState(initialMode)
   const [loginData, setLoginData] = useState(initialLogin)
   const [registerData, setRegisterData] = useState(initialRegister)
-  const [userRole, setUserRole] = useState('')
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [authUser, setAuthUser] = useState(null)
-  const [registeredUsers, setRegisteredUsers] = useState([])
   const [loginError, setLoginError] = useState('')
   const [registerError, setRegisterError] = useState('')
-
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Selamat pagi'
-    if (hour < 18) return 'Selamat siang'
-    return 'Selamat malam'
-  }, [])
 
   const handleLoginChange = (event) => {
     const { name, value } = event.target
@@ -69,51 +180,41 @@ function App() {
 
   const handleLoginSubmit = (event) => {
     event.preventDefault()
-    const email = loginData.email.trim().toLowerCase()
+    const identifier = loginData.email.trim().toLowerCase()
     const password = loginData.password
-    const registeredUser = registeredUsers.find((user) => user.email === email)
-    const adminAccount = adminAccounts[email]
+    const registeredUser = registeredUsers.find(
+      (user) => user.email === identifier || user.username === identifier
+    )
 
-    if (adminAccount) {
-      if (password !== adminAccount.password) {
-        setLoginError('Password admin tidak sesuai.')
-        return
-      }
-      setAuthUser({
-        name: adminAccount.name,
-        email,
-        role: adminAccount.role,
-      })
-      setUserRole(adminAccount.role)
-    } else if (registeredUser) {
-      if (password !== registeredUser.password) {
-        setLoginError('Password tidak sesuai dengan akun terdaftar.')
-        return
-      }
-      const role = resolveRole(email)
-      setAuthUser({
-        name: registeredUser.fullName,
-        email,
-        role,
-      })
-      setUserRole(role)
-    } else {
-      setLoginError('Email belum terdaftar. Silakan daftar terlebih dahulu.')
+    if (!registeredUser) {
+      setLoginError('Akun belum terdaftar. Silakan registrasi terlebih dahulu.')
       return
     }
 
-    setIsAuthenticated(true)
-    setIsLoginOpen(false)
-    setLoginData(initialLogin)
+    if (password !== registeredUser.password) {
+      setLoginError('Password tidak sesuai dengan akun terdaftar.')
+      return
+    }
+
     setLoginError('')
+    onLoginSuccess({
+      name: registeredUser.fullName,
+      email: registeredUser.email,
+      username: registeredUser.username,
+    })
   }
 
   const handleRegisterSubmit = (event) => {
     event.preventDefault()
     const email = registerData.email.trim().toLowerCase()
 
-    if (!isSarEmail(email)) {
-      setRegisterError('Email harus menggunakan domain @sar.ac.id.')
+    if (!isAllowedEmail(email)) {
+      setRegisterError('Email hanya boleh menggunakan domain @sar.ac.id atau @usti.ac.id.')
+      return
+    }
+
+    if (registerData.password !== registerData.confirmPassword) {
+      setRegisterError('Password dan ulang password tidak sama.')
       return
     }
 
@@ -122,24 +223,210 @@ function App() {
       return
     }
 
+    if (registeredUsers.some((user) => user.username === registerData.username.trim())) {
+      setRegisterError('Username sudah digunakan. Silakan pilih username lain.')
+      return
+    }
+
     setRegisteredUsers((prev) => [
       ...prev,
       {
         ...registerData,
         email,
+        username: registerData.username.trim().toLowerCase(),
       },
     ])
     setRegisterData(initialRegister)
     setRegisterError('')
-    setIsRegisterOpen(false)
-    setIsLoginOpen(true)
+    setMode('login')
   }
+
+  return (
+    <div className="user-auth">
+      <div className="user-auth__container">
+        <div className="user-auth__header">
+          <div>
+            <h1>ThriftKos</h1>
+            <p>Portal pengguna</p>
+          </div>
+          <a className="user-auth__back" href="/">
+            Kembali ke beranda
+          </a>
+        </div>
+
+        <div className="user-auth__card">
+          <div className="user-auth__tabs">
+            <button
+              type="button"
+              className={mode === 'login' ? 'active' : ''}
+              onClick={() => setMode('login')}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              className={mode === 'register' ? 'active' : ''}
+              onClick={() => setMode('register')}
+            >
+              Register
+            </button>
+          </div>
+
+          {mode === 'login' ? (
+            <form className="user-auth__form" onSubmit={handleLoginSubmit}>
+              <label>
+                Username atau Email
+                <input
+                  type="text"
+                  name="email"
+                  value={loginData.email}
+                  onChange={handleLoginChange}
+                  placeholder="username atau email"
+                  required
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  name="password"
+                  value={loginData.password}
+                  onChange={handleLoginChange}
+                  placeholder="Masukkan password"
+                  required
+                />
+              </label>
+              {loginError && <p className="form-error">{loginError}</p>}
+              <button className="primary" type="submit">
+                Masuk
+              </button>
+            </form>
+          ) : (
+            <form className="user-auth__form" onSubmit={handleRegisterSubmit}>
+              <label>
+                Nama Lengkap
+                <input
+                  type="text"
+                  name="fullName"
+                  value={registerData.fullName}
+                  onChange={handleRegisterChange}
+                  placeholder="Nama lengkap"
+                  required
+                />
+              </label>
+              <label>
+                Username
+                <input
+                  type="text"
+                  name="username"
+                  value={registerData.username}
+                  onChange={handleRegisterChange}
+                  placeholder="username"
+                  required
+                />
+              </label>
+              <label>
+                No HP
+                <input
+                  type="tel"
+                  name="phone"
+                  value={registerData.phone}
+                  onChange={handleRegisterChange}
+                  placeholder="08xxxxxxxxxx"
+                  required
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  name="email"
+                  value={registerData.email}
+                  onChange={handleRegisterChange}
+                  placeholder="nama@sar.ac.id"
+                  required
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  name="password"
+                  value={registerData.password}
+                  onChange={handleRegisterChange}
+                  placeholder="Buat password"
+                  required
+                />
+              </label>
+              <label>
+                Ulang Password
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={registerData.confirmPassword}
+                  onChange={handleRegisterChange}
+                  placeholder="Ulang password"
+                  required
+                />
+              </label>
+              <label>
+                Alamat
+                <textarea
+                  name="address"
+                  value={registerData.address}
+                  onChange={handleRegisterChange}
+                  placeholder="Alamat lengkap"
+                  rows="3"
+                  required
+                />
+              </label>
+              {registerError && <p className="form-error">{registerError}</p>}
+              <button className="primary" type="submit">
+                Daftar Akun
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [authUser, setAuthUser] = useState(null)
+  const [registeredUsers, setRegisteredUsers] = useState([])
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Selamat pagi'
+    if (hour < 18) return 'Selamat siang'
+    return 'Selamat malam'
+  }, [])
 
   const handleLogout = () => {
     setIsAuthenticated(false)
-    setUserRole('')
     setAuthUser(null)
-    setLoginData(initialLogin)
+  }
+
+  const handleUserLoginSuccess = (user) => {
+    setAuthUser(user)
+    setIsAuthenticated(true)
+    window.location.href = '/'
+  }
+
+  if (isAdminRoute()) {
+    return <AdminApp />
+  }
+
+  if (isUserRoute()) {
+    return (
+      <UserAuthPage
+        registeredUsers={registeredUsers}
+        setRegisteredUsers={setRegisteredUsers}
+        onLoginSuccess={handleUserLoginSuccess}
+      />
+    )
   }
 
   return (
@@ -169,10 +456,10 @@ function App() {
             </button>
           ) : (
             <>
-              <button className="ghost" type="button" onClick={() => setIsRegisterOpen(true)}>
+              <button className="ghost" type="button" onClick={() => window.location.assign('/user')}>
                 Daftar
               </button>
-              <button className="primary" type="button" onClick={() => setIsLoginOpen(true)}>
+              <button className="primary" type="button" onClick={() => window.location.assign('/user')}>
                 Login
               </button>
             </>
@@ -183,102 +470,19 @@ function App() {
       <main>
         {isAuthenticated ? (
           <section className="dashboard">
-            {(userRole === 'admin' || userRole === 'superadmin') && (
-              <div className="admin-dashboard">
-                <aside className="admin-sidebar">
-                  <div>
-                    <h3>{userRole === 'superadmin' ? 'Superadmin Panel' : 'Admin Panel'}</h3>
-                    <p>Dashboard internal ThriftKos</p>
-                  </div>
-                  <nav>
-                    <a href="#overview">Overview</a>
-                    <a href="#orders">Order Masuk</a>
-                    <a href="#inventory">Inventori</a>
-                    <a href="#finance">Keuangan</a>
-                  </nav>
-                </aside>
-                <div className="admin-content">
-                  <div className="admin-topbar">
-                    <div>
-                      <h2>Halo, {authUser?.name}</h2>
-                      <p>Selamat bekerja! Semua ringkasan operasional hari ini ada di sini.</p>
-                    </div>
-                    <div className="admin-actions">
-                      <button className="ghost" type="button">
-                        Generate Laporan
-                      </button>
-                      <button className="primary" type="button">
-                        Tambah Produk
-                      </button>
-                    </div>
-                  </div>
-                  <div className="admin-grid">
-                    <article className="admin-card">
-                      <h4>Total Penjualan</h4>
-                      <p className="admin-value">Rp 18.420.000</p>
-                      <span>+12% dari minggu lalu</span>
-                    </article>
-                    <article className="admin-card">
-                      <h4>Order Baru</h4>
-                      <p className="admin-value">128</p>
-                      <span>24 menunggu verifikasi</span>
-                    </article>
-                    <article className="admin-card">
-                      <h4>Produk Siap Live</h4>
-                      <p className="admin-value">56</p>
-                      <span>Stok aman & terkurasi</span>
-                    </article>
-                  </div>
-                  <div className="admin-table">
-                    <div>
-                      <h3>Aktivitas Terbaru</h3>
-                      <p>Monitoring aktivitas dan approval instan.</p>
-                    </div>
-                    <ul>
-                      <li>
-                        <span>09:10</span>
-                        <div>
-                          <strong>Verifikasi toko baru</strong>
-                          <p>Toko "Vintage Lab" menunggu persetujuan.</p>
-                        </div>
-                        <button className="ghost" type="button">
-                          Review
-                        </button>
-                      </li>
-                      <li>
-                        <span>10:45</span>
-                        <div>
-                          <strong>Rekap transaksi</strong>
-                          <p>15 transaksi berhasil disinkronkan ke sistem.</p>
-                        </div>
-                        <button className="ghost" type="button">
-                          Lihat
-                        </button>
-                      </li>
-                      <li>
-                        <span>13:20</span>
-                        <div>
-                          <strong>Stok kritis</strong>
-                          <p>Jaket kampus tinggal 4 item.</p>
-                        </div>
-                        <button className="ghost" type="button">
-                          Restock
-                        </button>
-                      </li>
-                    </ul>
-                  </div>
+            <div className="customer-dashboard">
+              <div className="customer-card">
+                <h2>Hello, {authUser?.name}</h2>
+                <p>
+                  Dashboard pelanggan siap digunakan. Nikmati pengalaman belanja terbaik bersama
+                  ThriftKos!
+                </p>
+                <div className="customer-meta">
+                  <span>Email: {authUser?.email}</span>
+                  <span>Username: {authUser?.username}</span>
                 </div>
               </div>
-            )}
-
-            {userRole === 'customer' && (
-              <div className="customer-dashboard">
-                <div className="customer-card">
-                  <h2>Hello, {authUser?.name}</h2>
-                  <p>Dashboard pelanggan siap digunakan. Nikmati pengalaman belanja terbaik!</p>
-                </div>
-              </div>
-            )}
+            </div>
           </section>
         ) : (
           <>
@@ -287,11 +491,11 @@ function App() {
                 <p className="hero__greeting">{greeting}, siap upgrade gaya hari ini?</p>
                 <h2>Belanja thrift kampus dengan standar ecommerce modern.</h2>
                 <p>
-                  ThriftKos menghubungkan mahasiswa, admin, dan superadmin dalam ekosistem
-                  thrift yang aman, transparan, dan mudah dikelola.
+                  ThriftKos menghubungkan mahasiswa dan komunitas thrift dalam ekosistem yang
+                  aman, transparan, dan mudah dikelola.
                 </p>
                 <div className="hero__cta">
-                  <button className="primary" type="button" onClick={() => setIsRegisterOpen(true)}>
+                  <button className="primary" type="button" onClick={() => window.location.assign('/user')}>
                     Daftar Sekarang
                   </button>
                   <button className="ghost" type="button">
@@ -300,12 +504,12 @@ function App() {
                 </div>
                 <div className="hero__meta">
                   <span>API terhubung: {API_BASE_URL}</span>
-                  <span>Terintegrasi dengan dashboard role-based</span>
+                  <span>Portal admin tersedia di /admin</span>
                 </div>
               </div>
               <div className="hero__card">
                 <h3>Promo Kampus Eksklusif</h3>
-                <p>Diskon hingga 40% khusus pengguna sar.ac.id setiap akhir pekan.</p>
+                <p>Diskon hingga 40% khusus pengguna kampus setiap akhir pekan.</p>
                 <div className="hero__stats">
                   <div>
                     <h4>120+</h4>
@@ -327,7 +531,7 @@ function App() {
                 <h3>Semua kebutuhan thrift dalam satu platform</h3>
                 <p>
                   Rangkaian fitur lengkap untuk belanja, pengelolaan toko, hingga monitoring
-                  transaksi admin.
+                  transaksi.
                 </p>
               </div>
               <div className="metrics__grid">
@@ -379,15 +583,15 @@ function App() {
               <div>
                 <h3>Kenapa ThriftKos?</h3>
                 <p>
-                  Platform aman dengan kontrol admin, pembayaran mudah, dan dukungan layanan
-                  kampus.
+                  Platform aman dengan pengalaman belanja cepat, pembayaran mudah, dan dukungan
+                  layanan kampus.
                 </p>
               </div>
               <ul>
-                <li>Role-based access untuk admin, superadmin, dan customer</li>
+                <li>Kurasi produk terpercaya untuk mahasiswa</li>
                 <li>Transaksi transparan dan terverifikasi</li>
                 <li>Support komunitas kampus & marketplace resmi</li>
-                <li>Insight penjualan real-time untuk tim admin</li>
+                <li>Insight belanja real-time untuk pelanggan</li>
               </ul>
             </section>
 
@@ -397,7 +601,7 @@ function App() {
                 <p>Dapatkan update promo dan koleksi terbaru setiap minggu.</p>
               </div>
               <div className="newsletter__form">
-                <input type="email" placeholder="email@sar.ac.id" />
+                <input type="email" placeholder="email@kampus.ac.id" />
                 <button className="primary" type="button">
                   Langganan
                 </button>
@@ -410,129 +614,6 @@ function App() {
       <footer className="footer" id="footer">
         <p>© 2024 ThriftKos. Dibangun untuk komunitas kampus.</p>
       </footer>
-
-      {isLoginOpen && (
-        <div className="modal">
-          <div className="modal__overlay" onClick={() => setIsLoginOpen(false)} />
-          <div className="modal__content">
-            <div className="modal__header">
-              <h3>Login ThriftKos</h3>
-              <button type="button" onClick={() => setIsLoginOpen(false)}>
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleLoginSubmit} className="modal__form">
-              <label>
-                Email
-                <input
-                  type="email"
-                  name="email"
-                  value={loginData.email}
-                  onChange={handleLoginChange}
-                  placeholder="nama@sar.ac.id"
-                  required
-                />
-              </label>
-              <label>
-                Password
-                <input
-                  type="password"
-                  name="password"
-                  value={loginData.password}
-                  onChange={handleLoginChange}
-                  placeholder="Masukkan password"
-                  required
-                />
-              </label>
-              {loginError && <p className="form-error">{loginError}</p>}
-              <button className="primary" type="submit">
-                Masuk
-              </button>
-              <p className="modal__hint">
-                Superadmin: superadmin@sar.ac.id / superadmin · Admin: admin@sar.ac.id / admin
-              </p>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {isRegisterOpen && (
-        <div className="modal">
-          <div className="modal__overlay" onClick={() => setIsRegisterOpen(false)} />
-          <div className="modal__content">
-            <div className="modal__header">
-              <h3>Registrasi ThriftKos</h3>
-              <button type="button" onClick={() => setIsRegisterOpen(false)}>
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleRegisterSubmit} className="modal__form">
-              <label>
-                Nama Lengkap
-                <input
-                  type="text"
-                  name="fullName"
-                  value={registerData.fullName}
-                  onChange={handleRegisterChange}
-                  placeholder="Nama lengkap"
-                  required
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  name="email"
-                  value={registerData.email}
-                  onChange={handleRegisterChange}
-                  placeholder="nama@sar.ac.id"
-                  required
-                />
-              </label>
-              <label>
-                Password
-                <input
-                  type="password"
-                  name="password"
-                  value={registerData.password}
-                  onChange={handleRegisterChange}
-                  placeholder="Buat password"
-                  required
-                />
-              </label>
-              <label>
-                No HP
-                <input
-                  type="tel"
-                  name="phone"
-                  value={registerData.phone}
-                  onChange={handleRegisterChange}
-                  placeholder="08xxxxxxxxxx"
-                  required
-                />
-              </label>
-              <label>
-                Alamat
-                <textarea
-                  name="address"
-                  value={registerData.address}
-                  onChange={handleRegisterChange}
-                  placeholder="Alamat lengkap"
-                  rows="3"
-                  required
-                />
-              </label>
-              {registerError && <p className="form-error">{registerError}</p>}
-              <button className="primary" type="submit">
-                Daftar Akun
-              </button>
-              <p className="modal__hint">
-                Gunakan email kampus @sar.ac.id untuk mendaftar.
-              </p>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
