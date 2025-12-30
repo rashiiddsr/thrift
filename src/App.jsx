@@ -19,10 +19,10 @@ const initialRegister = {
 }
 
 const defaultAdmin = {
-  name: 'Admin SAR',
-  username: 'admin',
-  email: 'admin@sar.ac.id',
-  password: 'admin',
+  name: 'ThriftKos Core',
+  username: 'thrift.admin',
+  email: 'core@thriftkos.id',
+  password: 'ThriftKos@2024',
   role: 'superadmin',
 }
 
@@ -84,7 +84,7 @@ function AdminApp() {
                 type="text"
                 value={adminIdentifier}
                 onChange={(event) => setAdminIdentifier(event.target.value)}
-                placeholder="admin@sar.ac.id atau username"
+                placeholder="username atau email admin"
                 required
               />
             </label>
@@ -103,9 +103,7 @@ function AdminApp() {
               Sign In
             </button>
           </form>
-          <p className="admin-login__hint">
-            Default admin: {defaultAdmin.username} / {defaultAdmin.password}
-          </p>
+          <p className="admin-login__hint">Gunakan kredensial resmi dari tim IT ThriftKos.</p>
         </div>
       </div>
     )
@@ -147,9 +145,26 @@ function AdminApp() {
             <div className="adminlte__avatar adminlte__avatar--light">A</div>
           </div>
         </header>
+        <section className="adminlte__overview">
+          <div className="adminlte__stat">
+            <span>Pengajuan baru</span>
+            <h3>24</h3>
+            <p>+12% dari minggu lalu</p>
+          </div>
+          <div className="adminlte__stat">
+            <span>Produk aktif</span>
+            <h3>1.280</h3>
+            <p>Kurasi real-time</p>
+          </div>
+          <div className="adminlte__stat">
+            <span>Transaksi hari ini</span>
+            <h3>Rp 48,5 jt</h3>
+            <p>Stabil di jam sibuk</p>
+          </div>
+        </section>
         <section className="adminlte__empty">
           <h3>Konten dashboard akan segera tersedia.</h3>
-          <p>Gunakan area ini untuk ringkasan admin dan modul master data.</p>
+          <p>Gunakan area ini untuk ringkasan admin, laporan, dan modul master data.</p>
         </section>
       </div>
     </div>
@@ -255,25 +270,12 @@ function UserAuthPage({
         </div>
 
         <div className="user-auth__card">
-          <div className="user-auth__tabs">
-            <button
-              type="button"
-              className={mode === 'login' ? 'active' : ''}
-              onClick={() => setMode('login')}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={mode === 'register' ? 'active' : ''}
-              onClick={() => setMode('register')}
-            >
-              Register
-            </button>
-          </div>
-
           {mode === 'login' ? (
             <form className="user-auth__form" onSubmit={handleLoginSubmit}>
+              <div className="user-auth__title">
+                <h2>Masuk ke akunmu</h2>
+                <p>Kelola pesanan dan favorit thrift kampus kamu.</p>
+              </div>
               <label>
                 Username atau Email
                 <input
@@ -300,9 +302,16 @@ function UserAuthPage({
               <button className="primary" type="submit">
                 Masuk
               </button>
+              <button className="user-auth__switch" type="button" onClick={() => setMode('register')}>
+                Belum punya akun? Daftar sekarang
+              </button>
             </form>
           ) : (
             <form className="user-auth__form" onSubmit={handleRegisterSubmit}>
+              <div className="user-auth__title">
+                <h2>Registrasi akun baru</h2>
+                <p>Isi data singkat untuk mulai belanja di ThriftKos.</p>
+              </div>
               <label>
                 Nama Lengkap
                 <input
@@ -384,6 +393,9 @@ function UserAuthPage({
               <button className="primary" type="submit">
                 Daftar Akun
               </button>
+              <button className="user-auth__switch" type="button" onClick={() => setMode('login')}>
+                Sudah punya akun? Masuk di sini
+              </button>
             </form>
           )}
         </div>
@@ -455,14 +467,9 @@ function App() {
               Keluar
             </button>
           ) : (
-            <>
-              <button className="ghost" type="button" onClick={() => window.location.assign('/user')}>
-                Daftar
-              </button>
-              <button className="primary" type="button" onClick={() => window.location.assign('/user')}>
-                Login
-              </button>
-            </>
+            <button className="primary" type="button" onClick={() => window.location.assign('/user')}>
+              Masuk
+            </button>
           )}
         </div>
       </header>
@@ -496,7 +503,7 @@ function App() {
                 </p>
                 <div className="hero__cta">
                   <button className="primary" type="button" onClick={() => window.location.assign('/user')}>
-                    Daftar Sekarang
+                    Masuk Portal
                   </button>
                   <button className="ghost" type="button">
                     Jelajahi Koleksi
